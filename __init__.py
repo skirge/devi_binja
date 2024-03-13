@@ -39,7 +39,7 @@ class binja_devi():
         binja_filename = os.path.basename(self.bv.file.original_filename).replace('.bndb','')
 
         for module in modules:
-            if module["name"] == binja_filename:
+            if module["name"] in binja_filename:
                 loaded_module = module
                 break
         if loaded_module is None:
@@ -48,12 +48,12 @@ class binja_devi():
         start = int(loaded_module["base"], 16)
         end = start + loaded_module["size"]
 
-        print(f"[!] Adding virtual calls for {binja_filename}")
+        #print(f"[!] Adding virtual calls for {binja_filename}")
 
         for v_call in call_list:
             for call in v_call:
                 if start <= int(call, 16) <= end:
-                    print(call)
+                    #print(call)
 
                     src = int(call, 16) - start
                     dst = int(v_call[call]) - start
@@ -65,12 +65,19 @@ class binja_devi():
                     # print(hex(dst))
                     funcs = self.bv.get_functions_containing(src)
                     if len(funcs) == 0:
-                        log.log(1, "[-] Functions for address {} not found".format(src))
+                        print("[-] Functions for address {} not found".format(src))
                         continue
 
                     self.caller = funcs[0]
                     self.caller.add_user_code_ref(src, dst)
                     self.add_call_comment(src, dst)
+                    # set UIDF
+                    # ptr = self.caller.get_low_level_il_at(src).mlil.operands[1]
+                    # if ptr.get_possible_values() is not None and dst == ptr.get_possible_values().value:
+                    #     continue
+                    # defs = self.caller.mlil.get_var_definitions(ptr.var)[0].address
+                    # value = PossibleValueSet.constant_ptr(dst)
+                    # self.caller.set_user_var_value(ptr.var, defs, value)
                     self.call_cnt += 1
         log.log(1, "Devirtualized {} calls".format(self.call_cnt))
 
@@ -79,8 +86,6 @@ class binja_devi():
         for v_call in call_list:
             for call in v_call:
                 to_addr = int(v_call[call])
-                #print(hex(int(call)))
-                #print(hex(to_addr))
                 #print(hex(int(call)))
                 #print(hex(to_addr))
                 from_addr = int(call)
